@@ -36,29 +36,6 @@ airfoil_pixels = [
     for y in range(-AIRFOIL_HEIGHT // PIXEL_SIZE, AIRFOIL_HEIGHT // PIXEL_SIZE)
 ]
 
-# Particle class
-class Particle:
-    def __init__(self, x, y, vx, vy):
-        self.x = x
-        self.y = y
-        self.vx = vx
-        self.vy = vy
-
-    def update(self):
-        # Move the particle
-        self.x += self.vx
-        self.y += self.vy
-
-        # Reflect off screen edges
-        if self.y <= 0 or self.y >= HEIGHT:
-            self.vy = -self.vy
-
-        # Detect collision with airfoil
-        if (int(self.x) // PIXEL_SIZE * PIXEL_SIZE, int(self.y) // PIXEL_SIZE * PIXEL_SIZE) in airfoil_pixels:
-            self.vx = -self.vx  # Reflect horizontally for simplicity
-
-    def draw(self, surface):
-        pygame.draw.rect(surface, BLUE, (int(self.x), int(self.y), PARTICLE_SIZE, PARTICLE_SIZE))
 
 
 # List to store particles
