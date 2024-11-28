@@ -7,7 +7,7 @@ pygame.init()
 
 
 """settings"""
-matrix_size = 100
+matrix_size = 50
 cube_size = 10
 
 """display part"""
@@ -24,6 +24,7 @@ FPS = 120
 
 def draw_matrix(mat):
     display.fill((0, 0, 0))
+    print(mat)
     for y in range(len(mat)):
         for x in range(len(mat)):
             sqr = mat[y][x]
