@@ -48,7 +48,7 @@ def load_foil(file):
     return dim, ex, ey, ix, iy
 
 
-def interpolate(path, start_idx=20, end_idx=80, height=1):
+def interpolate_matrix(path, start_idx=20, end_idx=80, height=1):
     dim, ex, ey, ix, iy = load_foil(path)
     xs = np.linspace(0, 1, end_idx - start_idx + 1)
 
@@ -63,8 +63,8 @@ def interpolate(path, start_idx=20, end_idx=80, height=1):
     low_e, high_e = np.min(interpolated_matrix[0, :]), np.max(interpolated_matrix[0, :])
     low_i, high_i = np.min(interpolated_matrix[1, :]), np.max(interpolated_matrix[1, :])
     
-    interpolated_matrix[0, :] = interpolated_matrix[0, :] * height
-    interpolated_matrix[1, :] = interpolated_matrix[1, :] * height
+    interpolated_matrix[0, :] = (interpolated_matrix[0, :] * height).astype(int)
+    interpolated_matrix[1, :] = (interpolated_matrix[1, :] * height).astype(int)
 
     return xs, interpolated_matrix
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     print(ix)
     print(iy)
     
-    xs, M = interpolate("data/geo05k.dat", 10, 90, 1000)
+    xs, M = interpolate_matrix("data/geo05k.dat", 10, 90, 1000)
     
     plt.plot(xs, M[0, :], label='extrados')
     plt.plot(xs, M[1, :], label='intrados')
