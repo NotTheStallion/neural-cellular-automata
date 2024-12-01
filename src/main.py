@@ -2,13 +2,14 @@ import pygame
 import sys
 import copy
 import random
+from load_foil import *
 
 pygame.init()
 
 
 """settings"""
-matrix_size = 50
-cube_size = 10
+matrix_size = 100
+cube_size = 5
 
 """display part"""
 display_width = (matrix_size + 2) * cube_size
@@ -19,75 +20,192 @@ pygame.display.set_caption("Water And Lava")
 
 """fps part"""
 clock = pygame.time.Clock()
-FPS = 120
+FPS = 60
 
 
 def draw_matrix(mat):
     display.fill((0, 0, 0))
-    print(mat)
+
     for y in range(len(mat)):
         for x in range(len(mat)):
             sqr = mat[y][x]
             if sqr == 1:
                 pygame.draw.rect(display, (11, 87, 217), (x * cube_size, y * cube_size, cube_size, cube_size))
-            elif sqr == 2:
-                pygame.draw.rect(display, (240, 130, 12), (x * cube_size, y * cube_size, cube_size, cube_size))
+            if sqr == 2:
+                pygame.draw.rect(display, (255, 0, 0), (x * cube_size, y * cube_size, cube_size, cube_size))
             elif sqr == 3:
                 pygame.draw.rect(display, (114, 96, 89), (x * cube_size, y * cube_size, cube_size, cube_size))
 
 
-def grow(mat):
+def grow_density(mat):
+    # Create a deep copy of the matrix to store the new state
     new_mat = copy.deepcopy(mat)
-    for y in range(1, len(mat)):
-        for x in range(1, len(mat)):
+    
+    # Iterate over each cell in the matrix, excluding the borders
+    for y in range(1, len(mat)-1):
+        for x in range(1, len(mat)-1):
+            # Get the value of the current cell
             sqr = mat[y][x]
-            if sqr == 1 or sqr == 2:
-
+            
+            # If the cell contains water (value 1)
+            if sqr == 1:
+                # Get the values of the neighboring cells
                 u = mat[y - 1][x]
                 d = mat[y + 1][x]
                 r = mat[y][x + 1]
                 l = mat[y][x - 1]
 
-                if sqr == 1:
-                    if d == 2:
-                        new_mat[y+1][x] = 3
-                        new_mat[y][x] = 3
-                    if l == 2:
-                        new_mat[y][x-1] = 3
-                        new_mat[y][x] = 3
-                    if r == 2:
-                        new_mat[y][x+1] = 3
-                        new_mat[y][x] = 3
-                    if u == 2:
-                        new_mat[y-1][x] = 3
-                        new_mat[y][x] = 3
-
-                if d == 0:
-                    new_mat[y+1][x] = sqr
+                # Movement: Prefer moving to the right, otherwise move randomly
+                if r == 0:
+                    new_mat[y][x+1] = sqr
                     new_mat[y][x] = 0
                 else:
-                    if random.randint(1, 2) == 1:
-                        if new_mat[y][x-1] == 0:
-                            new_mat[y][x-1] = sqr
-                            new_mat[y][x] = 0
-                    else:
-                        if new_mat[y][x+1] == 0:
-                            new_mat[y][x+1] = sqr
-                            new_mat[y][x] = 0
+                    direction = random.choice(['up', 'down', 'left'])
+                    if direction == 'left' and l == 0:
+                        new_mat[y][x-1] = sqr
+                        new_mat[y][x] = 0
+                    elif direction == 'up' and u == 0:
+                        new_mat[y-1][x] = sqr
+                        new_mat[y][x] = 0
+                    elif direction == 'down' and d == 0:
+                        new_mat[y+1][x] = sqr
+                        new_mat[y][x] = 0
 
+                # Collision: Bounce off or merge
+                if r == 1 or l == 1 or u == 1 or d == 1:
+                    if random.choice([True, False]):
+                        new_mat[y][x] = 0  # Merge
+                    else:
+                        # Bounce off
+                        if direction == 'right' and r == 1:
+                            new_mat[y][x-1] = sqr
+                        elif direction == 'left' and l == 1:
+                            new_mat[y][x+1] = sqr
+                        elif direction == 'up' and u == 1:
+                            new_mat[y+1][x] = sqr
+                        elif direction == 'down' and d == 1:
+                            new_mat[y-1][x] = sqr
+
+    # Pressure: Move particles from high-density to low-density areas
+    for y in range(1, len(mat)-1):
+        for x in range(1, len(mat)-1):
+            if mat[y][x] == 1:
+                neighbors = [(y-1, x), (y+1, x), (y, x-1), (y, x+1)]
+                low_density_neighbors = [n for n in neighbors if mat[n[0]][n[1]] == 0]
+                if low_density_neighbors:
+                    move_to = random.choice(low_density_neighbors)
+                    new_mat[move_to[0]][move_to[1]] = 1
+                    new_mat[y][x] = 0
+
+    # Diffusion: Spread particles from high-density to low-density areas
+    for y in range(1, len(mat)-1):
+        for x in range(1, len(mat)-1):
+            if mat[y][x] == 1:
+                neighbors = [(y-1, x), (y+1, x), (y, x-1), (y, x+1)]
+                for n in neighbors:
+                    if mat[n[0]][n[1]] == 0:
+                        new_mat[n[0]][n[1]] = 1
+                        new_mat[y][x] = 0
+                        break
+
+    # Remove water that touches the borders
+    for y in range(len(new_mat)):
+        if new_mat[y][0] == 1:
+            new_mat[y][0] = 0
+        if new_mat[y][len(new_mat)-1] == 1:
+            new_mat[y][len(new_mat)-1] = 0
+    for x in range(len(new_mat[0])):
+        if new_mat[0][x] == 1:
+            new_mat[0][x] = 0
+        if new_mat[len(new_mat)-1][x] == 1:
+            new_mat[len(new_mat)-1][x] = 0
+
+    # Return the new state of the matrix
     return new_mat
 
 
-def create_matrix():
-    matrix = [[3] * (matrix_size + 2)]
-    matrix += [[3] + ([0] * matrix_size) + [3] for _ in range(matrix_size)]
-    matrix += [[3] * (matrix_size + 2)]
+def grow(mat):
+    # Create a deep copy of the matrix to store the new state
+    new_mat = copy.deepcopy(mat)
+    
+    # Iterate over each cell in the matrix, excluding the borders
+    for y in range(1, len(mat)-1):
+        for x in range(1, len(mat)-1):
+            # Get the value of the current cell
+            sqr = mat[y][x]
+            
+            # If the cell contains water (value 1)
+            if sqr == 1:
+                # Get the values of the neighboring cells
+                u = mat[y - 1][x]
+                d = mat[y + 1][x]
+                r = mat[y][x + 1]
+                l = mat[y][x - 1]
+
+                # If the cell to the right is empty, move the water to the right
+                if r == 0:
+                    new_mat[y][x+1] = sqr
+                    new_mat[y][x] = 0
+                else:
+                    # Otherwise, randomly move the water up or down if those cells are empty
+                    if random.randint(1, 2) == 1:
+                        if new_mat[y-1][x] == 0:
+                            new_mat[y-1][x] = sqr
+                            new_mat[y][x] = 0
+                    else:
+                        if new_mat[y+1][x] == 0:
+                            new_mat[y+1][x] = sqr
+                            new_mat[y][x] = 0
+
+    # Remove water that touches the borders
+    for y in range(len(new_mat)):
+        if new_mat[y][0] == 1:
+            new_mat[y][0] = 0
+        if new_mat[y][len(new_mat)-1] == 1:
+            new_mat[y][len(new_mat)-1] = 0
+    for x in range(len(new_mat[0])):
+        if new_mat[0][x] == 1:
+            new_mat[0][x] = 0
+        if new_mat[len(new_mat)-1][x] == 1:
+            new_mat[len(new_mat)-1][x] = 0
+
+    # Return the new state of the matrix
+    return new_mat
+
+
+def create_matrix(path):
+    matrix = [[0 for _ in range(matrix_size)] for _ in range(matrix_size)]
+    
+    start_idx = int(matrix_size * 0.2)
+    end_idx = int(matrix_size * 0.8)
+    xs, interpolated_matrix = interpolate_matrix(path, start_idx, end_idx, height=300)
+    
+    print(interpolated_matrix)
+    
+    for i in range(len(interpolated_matrix)):
+        for j in range(len(interpolated_matrix[i])):
+            interpolated_matrix[i][j] += matrix_size // 2
+            
+    print(interpolated_matrix)
+    
+    for i in range(matrix_size):
+        for j in range(matrix_size):
+            if j < start_idx or j > end_idx:
+                matrix[j][i] = 0
+            else:
+                if i < interpolated_matrix[0][j - start_idx] and i > interpolated_matrix[1][j - start_idx]:
+                    # print(f"in the {i}th line we fill from {interpolated_matrix[0][i - start_idx]} to {interpolated_matrix[1][i - start_idx]}")
+                    matrix[i][j] = 3
+                
+    # print(matrix)
     return matrix
 
 
 def game():
     global FPS
-    matrix = create_matrix()
+    matrix = create_matrix("data/geo05k.dat")
+
+    # exit()
 
     """placing faze"""
     started = False
@@ -103,8 +221,6 @@ def game():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1:
                     color_mode = 1
-                if event.key == pygame.K_2:
-                    color_mode = 2
                 if event.key == pygame.K_3:
                     color_mode = 3
                 if event.key == pygame.K_ESCAPE:
@@ -138,7 +254,7 @@ def game():
 
         """grow matrix"""
         if started:
-            matrix = grow(matrix)
+            matrix = grow_density(matrix)
             clock.tick(FPS)
 
         """display update"""
