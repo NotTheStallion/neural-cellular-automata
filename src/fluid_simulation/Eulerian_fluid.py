@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 # Simulation parameters
-GRID_SIZE = 500  # Size of the simulation grid
-TIME_STEP = 1  # Time step for simulation
+GRID_SIZE = 100  # Size of the simulation grid
+TIME_STEP = 0.1  # Time step for simulation
 ITERATIONS = 20  # Gauss-Seidel iterations
 GRAVITY = np.array([0, 9.81])  # Gravity vector
 RELAXATION = 1.9  # Over-relaxation factor
@@ -15,8 +15,8 @@ density = np.zeros((GRID_SIZE, GRID_SIZE))  # Smoke density
 
 # Define obstacles
 obstacles = np.zeros((GRID_SIZE, GRID_SIZE), dtype=bool)
-center = (250, 250)
-radius = 50
+center = (25, 25)
+radius = 5
 for i in range(GRID_SIZE):
     for j in range(GRID_SIZE):
         if (i - center[0])**2 + (j - center[1])**2 <= radius**2:
@@ -85,12 +85,12 @@ def semi_lagrangian(velocity, density, timestep):
     return new_density
 
 # Simulation loop
-def update(frame):
+def update(_):
     global velocity, density
     apply_gravity(velocity, TIME_STEP)
     project(velocity)
     density = semi_lagrangian(velocity, density, TIME_STEP)
-    density[200:300, 0] += 10  # Add smoke source
+    density[20:30, 0] += 10  # Add smoke source
     im.set_array(density)
 
 # Visualization setup
@@ -101,5 +101,5 @@ for i in range(GRID_SIZE):
     for j in range(GRID_SIZE):
         if obstacles[i, j]:
             ax.add_patch(plt.Circle((j, i), 0.5, color='black'))
-ani = FuncAnimation(fig, update, frames=100, interval=10)
+ani = FuncAnimation(fig, update, frames=100, interval=50)
 plt.show()

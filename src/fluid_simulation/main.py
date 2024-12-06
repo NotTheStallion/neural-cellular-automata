@@ -16,7 +16,7 @@ display_width = (matrix_size + 2) * cube_size
 display_height = (matrix_size + 2) * cube_size
 
 display = pygame.display.set_mode((display_width, display_height))
-pygame.display.set_caption("Water And Lava")
+pygame.display.set_caption("Smoke simulation")
 
 """fps part"""
 clock = pygame.time.Clock()
@@ -30,11 +30,9 @@ def draw_matrix(mat):
         for x in range(len(mat)):
             sqr = mat[y][x]
             if sqr == 1:
-                pygame.draw.rect(display, (11, 87, 217), (x * cube_size, y * cube_size, cube_size, cube_size))
-            if sqr == 2:
-                pygame.draw.rect(display, (255, 0, 0), (x * cube_size, y * cube_size, cube_size, cube_size))
-            elif sqr == 3:
-                pygame.draw.rect(display, (114, 96, 89), (x * cube_size, y * cube_size, cube_size, cube_size))
+                pygame.draw.rect(display, (96, 96, 96), (x * cube_size, y * cube_size, cube_size, cube_size))
+            elif sqr == 2:
+                pygame.draw.rect(display, (255, 255, 255), (x * cube_size, y * cube_size, cube_size, cube_size))
 
 
 def grow_density(mat):
@@ -47,7 +45,7 @@ def grow_density(mat):
             # Get the value of the current cell
             sqr = mat[y][x]
             
-            # If the cell contains water (value 1)
+            # If the cell contains smoke (value 1)
             if sqr == 1:
                 # Get the values of the neighboring cells
                 u = mat[y - 1][x]
@@ -108,7 +106,7 @@ def grow_density(mat):
                         new_mat[y][x] = 0
                         break
 
-    # Remove water that touches the borders
+    # Remove smoke that touches the borders
     for y in range(len(new_mat)):
         if new_mat[y][0] == 1:
             new_mat[y][0] = 0
@@ -134,7 +132,7 @@ def grow(mat):
             # Get the value of the current cell
             sqr = mat[y][x]
             
-            # If the cell contains water (value 1)
+            # If the cell contains smoke (value 1)
             if sqr == 1:
                 # Get the values of the neighboring cells
                 u = mat[y - 1][x]
@@ -142,12 +140,12 @@ def grow(mat):
                 r = mat[y][x + 1]
                 l = mat[y][x - 1]
 
-                # If the cell to the right is empty, move the water to the right
+                # If the cell to the right is empty, move the smoke to the right
                 if r == 0:
                     new_mat[y][x+1] = sqr
                     new_mat[y][x] = 0
                 else:
-                    # Otherwise, randomly move the water up or down if those cells are empty
+                    # Otherwise, randomly move the smoke up or down if those cells are empty
                     if random.randint(1, 2) == 1:
                         if new_mat[y-1][x] == 0:
                             new_mat[y-1][x] = sqr
@@ -157,7 +155,7 @@ def grow(mat):
                             new_mat[y+1][x] = sqr
                             new_mat[y][x] = 0
 
-    # Remove water that touches the borders
+    # Remove smoke that touches the borders
     for y in range(len(new_mat)):
         if new_mat[y][0] == 1:
             new_mat[y][0] = 0
@@ -195,7 +193,7 @@ def create_matrix(path):
             else:
                 if i < interpolated_matrix[0][j - start_idx] and i > interpolated_matrix[1][j - start_idx]:
                     # print(f"in the {i}th line we fill from {interpolated_matrix[0][i - start_idx]} to {interpolated_matrix[1][i - start_idx]}")
-                    matrix[i][j] = 3
+                    matrix[i][j] = 2
                 
     # print(matrix)
     return matrix
@@ -221,8 +219,8 @@ def game():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1:
                     color_mode = 1
-                if event.key == pygame.K_3:
-                    color_mode = 3
+                if event.key == pygame.K_2:
+                    color_mode = 2
                 if event.key == pygame.K_ESCAPE:
                     matrix = create_matrix()
                     started = False
@@ -235,13 +233,11 @@ def game():
         """drawing"""
         if click[0]:
             m_x, m_y = mouse[0] // cube_size, mouse[1] // cube_size
-            if matrix[m_y][m_x] != 3:
+            if matrix[m_y][m_x] != 2:
                 if color_mode == 1:
                     matrix[m_y][m_x] = 1
                 elif color_mode == 2:
                     matrix[m_y][m_x] = 2
-                elif color_mode == 3:
-                    matrix[m_y][m_x] = 3
         """deleting"""
         if click[2]:
             m_x, m_y = mouse[0] // cube_size, mouse[1] // cube_size
@@ -254,7 +250,7 @@ def game():
 
         """grow matrix"""
         if started:
-            matrix = grow_density(matrix)
+            matrix = grow(matrix)
             clock.tick(FPS)
 
         """display update"""
