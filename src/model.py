@@ -8,6 +8,16 @@ import matplotlib.pyplot as plt
 import random
 from tqdm import tqdm
 import os
+import wandb
+
+
+def load_image_from_path(path, size=64):
+    img = Image.open(path)
+    img = img.resize((size, size))
+    img = img.convert("RGBA")
+    img_tensor = torch.from_numpy(np.array(img))
+    return img_tensor / 255
+
 
 
 def load_image_from_url(url, size=64):
@@ -131,6 +141,20 @@ class NeuralCellularAutomata(nn.Module):
         """
         target: (channels, height, width)
         """
+        run = wandb.init(
+            project="neural-cellular-automata",
+            config={
+                "epochs": epochs,
+                "pool_size": pool_size,
+                "batch_size": batch_size
+            }
+        )
+        
+        # define x-axis as epoch
+        wandb.define_metric("epoch")
+        wandb.define_metric("*", step_metric="epoch")
+        
+        
         # Initialize the seed and pool
         channels, height, width = target.shape
         seed = torch.zeros(16, height, width)
@@ -161,15 +185,21 @@ class NeuralCellularAutomata(nn.Module):
             
             # Perform optimization step
             outputs, loss = self.train(torch.stack(batch).to(self.device), targets)
-            print(f"Loss: {loss}")
+            # print(f"Loss: {loss}")
+            wandb.log({"epoch": i, "loss": loss.item()})
             outputs = outputs.cpu().detach()
             for idx, output in zip(idxs, outputs):
                 pool[idx] = output.cpu().detach()
                 del output
+        run.finish()
 
 
 if __name__ == "__main__":
     nca = NeuralCellularAutomata()
+    # target_img_path = "data/horse.png"
+    # nca.pool_training(load_image_from_path(target_img_path).transpose(0, 2), epochs=1000, pool_size=1024, batch_size=256)
+    
+    
     image_url = "https://static.vecteezy.com/system/resources/previews/003/240/508/original/beautiful-purple-daisy-flower-isolated-on-white-background-vector.jpg"
-    nca.pool_training(load_image_from_url(image_url).transpose(0, 2), epochs=100, pool_size=50, batch_size=10)
-    # nca.save()
+    nca.pool_training(load_image_from_url(image_url).transpose(0, 2), epochs=50000, pool_size=1024, batch_size=25)
+    nca.save()
